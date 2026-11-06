@@ -1,0 +1,54 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # New vulnerabilities appear without any change in this repository.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+env:
+  TRIVY_IMAGE: aquasec/trivy:0.75.0
+  GITLEAKS_IMAGE: zricethezav/gitleaks:v8.30.1
+  SEMGREP_IMAGE: semgrep/semgrep:1.183.0
+
+jobs:
+  lint-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: pip install ruff==0.17.0 pip-audit==2.10.1
+      - name: Ruff check
+        run: ruff check .
+      - name: Ruff format
+        if: ${{ !cancelled() }}
+        run: ruff format --check .
+      - name: Dependency audit
+        if: ${{ !cancelled() }}
+        run: pip-audit -r requirements.txt
+
+  scans:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy
+        run: |
+          docker run --rm -v "$PWD":/src:ro "$TRIVY_IMAGE" fs --exit-code 1 \
+            --scanners vuln,secret,misconfig --severity HIGH,CRITICAL /src
+      - name: Gitleaks
+        if: ${{ !cancelled() }}
+        run: docker run --rm -v "$PWD":/src:ro "$GITLEAKS_IMAGE" dir /src --no-banner
+      - name: Semgrep
+        if: ${{ !cancelled() }}
+        run: |
+          docker run --rm -v "$PWD":/src:ro -w /src "$SEMGREP_IMAGE" \
+            semgrep scan --config p/default --metrics off --error \
+            --exclude-rule yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag .
