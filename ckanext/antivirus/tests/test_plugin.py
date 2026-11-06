@@ -48,10 +48,10 @@ To temporary patch the CKAN configuration for the duration of a test you can use
         pass
 """
 import pytest
-import ckanext.antivirus.plugin as plugin
+from ckan import plugins
 
 
 @pytest.mark.ckan_config("ckan.plugins", "antivirus")
 @pytest.mark.usefixtures("with_plugins")
 def test_plugin():
-    assert plugin_loaded("antivirus")
+    assert plugins.plugin_loaded("antivirus")
