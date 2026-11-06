@@ -1,0 +1,14 @@
+# antivirus-js:
+#   filters: rjsmin
+#   output: ckanext-antivirus/%(version)s-antivirus.js
+#   contents:
+#     - js/antivirus.js
+#   extra:
+#     preload:
+#       - base/main
+
+# antivirus-css:
+#   filters: cssrewrite
+#   output: ckanext-antivirus/%(version)s-antivirus.css
+#   contents:
+#     - css/antivirus.css
